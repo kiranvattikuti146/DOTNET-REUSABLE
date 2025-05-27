@@ -1,0 +1,138 @@
+name: Reusable Dotnet Workflow
+
+on:
+  workflow_call:
+    inputs:
+      command:
+        required: true
+        type: string
+      projects:
+        required: true
+        type: string
+      arguments:
+        required: false
+        type: string
+      nugetConfigPath:
+        required: true
+        type: string
+      packagesToPack:
+        required: true
+        type: string
+      configuration:
+        required: true
+        type: string
+      custom:
+        required: true
+        type: boolean
+      restoreArguments:
+        required: true
+        type: string
+      testRunTitle:
+        required: false
+        type: string
+      modifyOutputPath:
+        required: true
+        type: boolean
+      packDirectory:
+        required: true
+        type: string
+      nobuild:
+        required: true
+        type: boolean
+      includesymbols:
+        required: true
+        type: boolean
+      includesource:
+        required: true
+        type: boolean
+      requestTimeout:
+        required: false
+        type: string
+      noCache:
+        required: true
+        type: boolean
+      restoreDirectory:
+        required: true
+        type: string
+      verbosityRestore:
+        required: true
+        type: string
+      sensitiveAlphanumericInfo1:
+        required: true
+        type: string
+      versioningScheme:
+        required: false
+        type: string
+      versionEnvVar:
+        required: true
+        type: string
+      majorVersion:
+        required: true
+        type: string
+      minorVersion:
+        required: true
+        type: string
+      patchVersion:
+        required: true
+        type: string
+      buildProperties:
+        required: true
+        type: string
+      verbosityPack:
+        required: true
+        type: string
+      workingDirectory:
+        required: true
+        type: string
+
+jobs:
+  dotnet:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.workingDirectory }}
+
+    env:
+      VERSION: ${{ inputs.majorVersion }}.${{ inputs.minorVersion }}.${{ inputs.patchVersion }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.201'
+
+      - name: Set version env var (optional use)
+        shell: bash
+        run: echo "${{ inputs.versionEnvVar }}=$VERSION" >> $GITHUB_ENV
+
+      - name: Run dotnet ${{ inputs.command }}
+        shell: bash
+        run: |
+          if [[ "${{ inputs.command }}" == "restore" ]]; then
+            dotnet restore "${{ inputs.projects }}" \
+              --configfile "${{ inputs.nugetConfigPath }}" \
+              ${{ inputs.restoreArguments }} \
+              --no-cache="${{ inputs.noCache }}" \
+              --packages "${{ inputs.restoreDirectory }}" \
+              --verbosity "${{ inputs.verbosityRestore }}"
+
+          elif [[ "${{ inputs.command }}" == "build" ]]; then
+            dotnet build "${{ inputs.projects }}" ${{ inputs.arguments }}
+
+          elif [[ "${{ inputs.command }}" == "test" ]]; then
+            dotnet test "${{ inputs.projects }}" ${{ inputs.arguments }} \
+              --logger "trx;LogFileName=${{ inputs.testRunTitle }}.trx"
+
+          elif [[ "${{ inputs.command }}" == "pack" ]]; then
+            dotnet pack "${{ inputs.packagesToPack }}" \
+              --configuration "${{ inputs.configuration }}" \
+              --output "${{ inputs.packDirectory }}" \
+              --no-build="${{ inputs.nobuild }}" \
+              --include-symbols="${{ inputs.includesymbols }}" \
+              --include-source="${{ inputs.includesource }}" \
+              --property "Version=$VERSION;SensitiveAlphanumericInfo3=${{ inputs.sensitiveAlphanumericInfo1 }};${{ inputs.buildProperties }}" \
+              --verbosity "${{ inputs.verbosityPack }}"
+          fi
