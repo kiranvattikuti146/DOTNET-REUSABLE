@@ -112,27 +112,27 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ inputs.command }}" == "restore" ]]; then
-            dotnet restore "${{ inputs.projects }}" \
-              --configfile "${{ inputs.nugetConfigPath }}" \
-              ${{ inputs.restoreArguments }} \
-              --no-cache="${{ inputs.noCache }}" \
-              --packages "${{ inputs.restoreDirectory }}" \
+            dotnet restore "${{ inputs.projects }}" 
+              --configfile "${{ inputs.nugetConfigPath }}" 
+              ${{ inputs.restoreArguments }} 
+              --no-cache="${{ inputs.noCache }}" 
+              --packages "${{ inputs.restoreDirectory }}" 
               --verbosity "${{ inputs.verbosityRestore }}"
 
           elif [[ "${{ inputs.command }}" == "build" ]]; then
             dotnet build "${{ inputs.projects }}" ${{ inputs.arguments }}
 
           elif [[ "${{ inputs.command }}" == "test" ]]; then
-            dotnet test "${{ inputs.projects }}" ${{ inputs.arguments }} \
+            dotnet test "${{ inputs.projects }}" ${{ inputs.arguments }} 
               --logger "trx;LogFileName=${{ inputs.testRunTitle }}.trx"
 
           elif [[ "${{ inputs.command }}" == "pack" ]]; then
-            dotnet pack "${{ inputs.packagesToPack }}" \
-              --configuration "${{ inputs.configuration }}" \
-              --output "${{ inputs.packDirectory }}" \
-              --no-build="${{ inputs.nobuild }}" \
-              --include-symbols="${{ inputs.includesymbols }}" \
-              --include-source="${{ inputs.includesource }}" \
-              --property "Version=$VERSION;SensitiveAlphanumericInfo3=${{ inputs.sensitiveAlphanumericInfo1 }};${{ inputs.buildProperties }}" \
+            dotnet pack "${{ inputs.packagesToPack }}" 
+              --configuration "${{ inputs.configuration }}" 
+              --output "${{ inputs.packDirectory }}" 
+              --no-build="${{ inputs.nobuild }}" 
+              --include-symbols="${{ inputs.includesymbols }}" 
+              --include-source="${{ inputs.includesource }}" 
+              --property "Version=$VERSION;SensitiveAlphanumericInfo3=${{ inputs.sensitiveAlphanumericInfo1 }};${{ inputs.buildProperties }}" 
               --verbosity "${{ inputs.verbosityPack }}"
           fi
