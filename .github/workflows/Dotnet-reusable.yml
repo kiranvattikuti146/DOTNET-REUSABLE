@@ -1,72 +1,100 @@
-name: VSTest Reusable Workflow
+name: Reusable Dotnet Workflow
 
 on:
   workflow_call:
     inputs:
-      runsOn:
+      command:
         required: true
         type: string
-      dotnet-version:
+      projects:
         required: true
         type: string
-      test-assembly:
+      arguments:
+        required: false
+        type: string
+      nugetConfigPath:
+        required: true
+        type: string
+      packagesToPack:
         required: true
         type: string
       configuration:
         required: true
         type: string
-      platform:
-        required: false
-        type: string
-      code-coverage-enabled:
-        required: false
+      custom:
+        required: true
         type: boolean
-      test-run-title:
+      restoreArguments:
+        required: true
+        type: string
+      testRunTitle:
         required: false
         type: string
-      run-in-parallel:
-        required: false
+      modifyOutputPath:
+        required: true
         type: boolean
-      testPlan:
-        required: false
+      packDirectory:
+        required: true
         type: string
-      testSuite:
-        required: false
-        type: string
-      testConfiguration:
-        required: false
-        type: string
-      tcmTestRun:
-        required: false
-        type: string
-      uiTests:
-        required: false
+      nobuild:
+        required: true
         type: boolean
-      vsTestVersion:
-        required: false
-        type: string
-      vstestLocation:
-        required: false
-        type: string
-      diagnosticsEnabled:
-        required: false
+      includesymbols:
+        required: true
         type: boolean
-      rerunFailedTests:
-        required: false
+      includesource:
+        required: true
         type: boolean
-      rerunType:
+      requestTimeout:
         required: false
         type: string
-      rerunMaxAttempts:
+      noCache:
+        required: true
+        type: boolean
+      restoreDirectory:
+        required: true
+        type: string
+      verbosityRestore:
+        required: true
+        type: string
+      sensitiveAlphanumericInfo1:
+        required: true
+        type: string
+      versioningScheme:
         required: false
         type: string
-      dontDistribute:
-        required: false
-        type: boolean
+      versionEnvVar:
+        required: true
+        type: string
+      majorVersion:
+        required: true
+        type: string
+      minorVersion:
+        required: true
+        type: string
+      patchVersion:
+        required: true
+        type: string
+      buildProperties:
+        required: true
+        type: string
+      verbosityPack:
+        required: true
+        type: string
+      workingDirectory:
+        required: true
+        type: string
 
 jobs:
-  run-tests:
-    runs-on: ${{ inputs.runsOn }}
+  dotnet:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.workingDirectory }}
+
+    env:
+      VERSION: ${{ inputs.majorVersion }}.${{ inputs.minorVersion }}.${{ inputs.patchVersion }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -74,10 +102,37 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ inputs.dotnet-version }}
+          dotnet-version: '9.0.201'
 
-      - name: Restore dependencies
-        run: dotnet restore tests/UnitTests/UnitTests.csproj
+      - name: Set version env var (optional use)
+        shell: bash
+        run: echo "${{ inputs.versionEnvVar }}=$VERSION" >> $GITHUB_ENV
 
-      - name: Build project
-        run: dotnet build tests/UnitTests/UnitTests.csproj --configuration ${{ inputs.configuration }} --no-restore
+      - name: Run dotnet ${{ inputs.command }}
+        shell: bash
+        run: |
+          if [[ "${{ inputs.command }}" == "restore" ]]; then
+            dotnet restore "${{ inputs.projects }}" 
+              --configfile "${{ inputs.nugetConfigPath }}" 
+              ${{ inputs.restoreArguments }} 
+              --no-cache="${{ inputs.noCache }}" 
+              --packages "${{ inputs.restoreDirectory }}" 
+              --verbosity "${{ inputs.verbosityRestore }}"
+
+          elif [[ "${{ inputs.command }}" == "build" ]]; then
+            dotnet build "${{ inputs.projects }}" ${{ inputs.arguments }}
+
+          elif [[ "${{ inputs.command }}" == "test" ]]; then
+            dotnet test "${{ inputs.projects }}" ${{ inputs.arguments }} 
+              --logger "trx;LogFileName=${{ inputs.testRunTitle }}.trx"
+
+          elif [[ "${{ inputs.command }}" == "pack" ]]; then
+            dotnet pack "${{ inputs.packagesToPack }}" 
+              --configuration "${{ inputs.configuration }}" 
+              --output "${{ inputs.packDirectory }}" 
+              --no-build="${{ inputs.nobuild }}" 
+              --include-symbols="${{ inputs.includesymbols }}" 
+              --include-source="${{ inputs.includesource }}" 
+              --property "Version=$VERSION;SensitiveAlphanumericInfo3=${{ inputs.sensitiveAlphanumericInfo1 }};${{ inputs.buildProperties }}" 
+              --verbosity "${{ inputs.verbosityPack }}"
+          fi
