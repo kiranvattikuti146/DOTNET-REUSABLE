@@ -12,77 +12,86 @@ on:
       arguments:
         required: false
         type: string
-      nugetConfigPath:
-        required: true
-        type: string
-      packagesToPack:
-        required: true
-        type: string
-      configuration:
-        required: true
-        type: string
-      custom:
-        required: true
-        type: boolean
       restoreArguments:
-        required: true
+        required: false
         type: string
+      publishTestResults:
+        required: false
+        type: boolean
       testRunTitle:
         required: false
         type: string
-      modifyOutputPath:
-        required: true
+      publishWebProjects:
+        required: false
         type: boolean
+      zipAfterPublish:
+        required: false
+        type: boolean
+      modifyOutputPath:
+        required: false
+        type: boolean
+      packagesToPack:
+        required: false
+        type: string
+      configuration:
+        required: false
+        type: string
       packDirectory:
-        required: true
+        required: false
         type: string
       nobuild:
-        required: true
+        required: false
         type: boolean
       includesymbols:
-        required: true
+        required: false
         type: boolean
       includesource:
-        required: true
+        required: false
         type: boolean
       requestTimeout:
         required: false
         type: string
+      includeNuGetOrg:
+        required: false
+        type: boolean
+      nugetConfigPath:
+        required: false
+        type: string
       noCache:
-        required: true
+        required: false
         type: boolean
       restoreDirectory:
-        required: true
+        required: false
         type: string
       verbosityRestore:
-        required: true
+        required: false
         type: string
-      sensitiveAlphanumericInfo1:
-        required: true
-        type: string
+      publishPackageMetadata:
+        required: false
+        type: boolean
       versioningScheme:
         required: false
         type: string
       versionEnvVar:
-        required: true
+        required: false
         type: string
       majorVersion:
-        required: true
+        required: false
         type: string
       minorVersion:
-        required: true
+        required: false
         type: string
       patchVersion:
-        required: true
+        required: false
         type: string
       buildProperties:
-        required: true
+        required: false
         type: string
       verbosityPack:
-        required: true
+        required: false
         type: string
       workingDirectory:
-        required: true
+        required: false
         type: string
 
 jobs:
@@ -125,6 +134,9 @@ jobs:
           elif [[ "${{ inputs.command }}" == "test" ]]; then
             dotnet test "${{ inputs.projects }}" ${{ inputs.arguments }} 
               --logger "trx;LogFileName=${{ inputs.testRunTitle }}.trx"
+            if [[ "${{ inputs.publishTestResults }}" == "true" ]]; then
+              echo "Publishing test results..."
+            fi
 
           elif [[ "${{ inputs.command }}" == "pack" ]]; then
             dotnet pack "${{ inputs.packagesToPack }}" 
@@ -133,6 +145,19 @@ jobs:
               --no-build="${{ inputs.nobuild }}" 
               --include-symbols="${{ inputs.includesymbols }}" 
               --include-source="${{ inputs.includesource }}" 
-              --property "Version=$VERSION;SensitiveAlphanumericInfo3=${{ inputs.sensitiveAlphanumericInfo1 }};${{ inputs.buildProperties }}" 
+              --property "Version=$VERSION;${{ inputs.buildProperties }}" 
               --verbosity "${{ inputs.verbosityPack }}"
+
+          elif [[ "${{ inputs.command }}" == "publish" ]]; then
+            dotnet publish "${{ inputs.projects }}" 
+              --configuration "${{ inputs.configuration }}" 
+              --output "${{ inputs.packDirectory }}" 
+              --no-build="${{ inputs.nobuild }}" 
+              --verbosity "${{ inputs.verbosityPack }}"
+            if [[ "${{ inputs.publishWebProjects }}" == "true" ]]; then
+              echo "Publishing web projects..."
+            fi
+            if [[ "${{ inputs.zipAfterPublish }}" == "true" ]]; then
+              echo "Zipping published output..."
+            fi
           fi
